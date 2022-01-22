@@ -7,21 +7,66 @@ IMAGE_NAME="${IMAGE_NAME:-gmail-backup}"
 BACKUPS_DIR="${BACKUPS_DIR:-./backups}"
 BACKUPS_DIR="$(readlink -f "${BACKUPS_DIR}")"
 
+function find_domain {
+  local email=
+  # idiomatic parameter and option handling in sh
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --email)
+        email="$2"
+        break
+        ;;
+    esac
+    shift
+  done
+  if [[ -z "${email}" ]]; then
+    >&2 echo "Need --email argument to determine domain config path"
+    exit 1
+  fi
+  sed 's/.*@//' <<<"${email}"
+}
+
 function rebuild {
-  docker build . --progress=plain -t "${IMAGE_NAME}"
+  docker build --progress=plain -t "${IMAGE_NAME}" - <<'DEOF'
+FROM python:3.10.2
+
+ENV HOME=/backups
+ENV GYB_INSTALL=/opt/gyb
+
+RUN mkdir -p "${HOME}" "${GYB_INSTALL}" && chown 1001 "${HOME}"
+RUN curl -s -S --fail -L https://github.com/GAM-team/got-your-back/archive/refs/heads/main.tar.gz \
+    | tar -xzv --strip-components=1 -C "${GYB_INSTALL}"
+RUN pip install -r "${GYB_INSTALL}/requirements.txt"
+
+USER 1001
+
+WORKDIR /backups
+VOLUME /backups
+
+ENTRYPOINT ["/opt/gyb/gyb.py"]
+DEOF
 }
 
 function main {
-  if [[ -v REBUILD ]] || ! docker image inspect "${IMAGE_NAME}" &>/dev/null; then
-    rebuild
-  fi
-
   if ! [[ -d "${BACKUPS_DIR}" ]]; then
     >&2 echo "BACKUPS_DIR [${BACKUPS_DIR}] does not point to a valid folder"
     exit 1
   fi
 
-  docker run --rm -it -v "${BACKUPS_DIR}:/backups" "${IMAGE_NAME}" --config-folder /backups "$@"
+  local domain="$(find_domain "$@")"
+  if [[ -z "${domain}" ]]; then
+    >&2 echo "Unable to determine domain from email"
+    exit 1
+  fi
+
+  if [[ -v REBUILD ]] || ! docker image inspect "${IMAGE_NAME}" &>/dev/null; then
+    rebuild
+  fi
+
+  mkdir -p "${BACKUPS_DIR}/${domain}"
+  chown 1001 "${BACKUPS_DIR}" "${BACKUPS_DIR}/${domain}"
+
+  docker run --rm -it -v "${BACKUPS_DIR}:/backups" "${IMAGE_NAME}" --config-folder "/backups/${domain}" "$@"
 }
 
 main "$@"
