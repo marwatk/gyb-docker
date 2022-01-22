@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+cd -P -- "$(dirname -- "$0")" 
+
+IMAGE_NAME="${IMAGE_NAME:-gmail-backup}"
+BACKUPS_DIR="${BACKUPS_DIR:-./backups}"
+BACKUPS_DIR="$(readlink -f "${BACKUPS_DIR}")"
+
+function rebuild {
+  docker build . --progress=plain -t "${IMAGE_NAME}"
+}
+
+function main {
+  if [[ -v REBUILD ]] || ! docker image inspect "${IMAGE_NAME}" &>/dev/null; then
+    rebuild
+  fi
+
+  if ! [[ -d "${BACKUPS_DIR}" ]]; then
+    >&2 echo "BACKUPS_DIR [${BACKUPS_DIR}] does not point to a valid folder"
+    exit 1
+  fi
+
+  docker run --rm -it -v "${BACKUPS_DIR}:/backups" "${IMAGE_NAME}" "$@"
+}
+
+main "$@"
