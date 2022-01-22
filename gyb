@@ -21,7 +21,7 @@ function main {
     exit 1
   fi
 
-  docker run --rm -it -v "${BACKUPS_DIR}:/backups" "${IMAGE_NAME}" "$@"
+  docker run --rm -it -v "${BACKUPS_DIR}:/backups" "${IMAGE_NAME}" --config-folder /backups "$@"
 }
 
 main "$@"

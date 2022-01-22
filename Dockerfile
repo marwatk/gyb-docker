@@ -9,11 +9,9 @@ RUN <<EOF
 #!/bin/bash -ex
   mkdir -p "${HOME}" "${GYB_INSTALL}"
   chown 1001 "${HOME}"
-  curl -s -S --fail -L https://github.com/GAM-team/got-your-back/archive/refs/tags/v${GYB_VERSION}.tar.gz \
+  curl -s -S --fail -L https://github.com/marwatk/got-your-back/archive/refs/heads/config-dir.tar.gz \
     | tar -xzv --strip-components=1 -C "${GYB_INSTALL}"
   pip install -r "${GYB_INSTALL}/requirements.txt"
-  ln -s /backups/oauth2service.json /opt/gyb/oauth2service.json
-  ln -s /backups/client_secrets.json /opt/gyb/client_secrets.json
 EOF
 
 USER 1001
