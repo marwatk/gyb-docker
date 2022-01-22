@@ -23,8 +23,13 @@ Because of how GYB stores ~~Apps for Your Domain~~ ~~G Suite~~ Google Workspace 
 export BACKUPS_DIR=/path/to/backups
 export EMAIL_ACCOUNT=someuser@example.com
 
+mkdir -p "${BACKUPS_DIR}"
+
+# Image uses 1001 userid
+chown 1001 "${BACKUPS_DIR}"
+
 # Set up account credentials
-./gyb --email "${EMAIL_ACCOUNT}" --create-project
+./gyb --email "${EMAIL_ACCOUNT}" --action create-project
 # Follow the prompts
 
 # Fix service account for workspaces
