@@ -9,7 +9,6 @@ BACKUPS_DIR="$(readlink -f "${BACKUPS_DIR}")"
 
 function find_domain {
   local email=
-  # idiomatic parameter and option handling in sh
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --email)
